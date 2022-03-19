@@ -208,3 +208,101 @@ WHERE
   gen.libellegenre = 'Drame'
   AND pers1.nom = 'Hazanavicius';
 --21. Donner le nom et le prénom des réalisateurs qui ont joué dans au moins un de leurs propres films
+SELECT
+  pers.prenom,
+  pers.nom
+FROM
+  Film film
+  JOIN Distribution dist on film.numfilm = dist.numfilm
+  JOIN Acteur act on dist.numacteur = act.numacteur
+  JOIN Personne pers on act.numpersonne = pers.numpersonne
+  JOIN Film film2 on pers.numpersonne = film.realisateur
+GROUP BY
+  pers.prenom,
+  pers.nom;
+--22. Donner le nombre de films des années de 2010 à 2012 par genre.
+SELECT
+  gen.libellegenre,
+  COUNT(film.genre) AS "nombre"
+FROM
+  Genre gen
+  JOIN Film film on gen.numgenre = film.genre
+WHERE
+  film.annee BETWEEN 2010
+  AND 2012
+GROUP BY
+  gen.libellegenre;
+-- 23. Quel est le total des salaires des acteurs du film « Intouchables ».
+SELECT
+  SUM(dist.salaire) AS "Montant des salaires"
+FROM
+  Film film
+  JOIN Distribution dist on film.numfilm = dist.numfilm
+WHERE
+  film.titre = 'Intouchables';
+--24. Donner la moyenne des salaires des acteurs par film, avec le titre et l’année correspondants (pour arrondir fonction : round(valeur, nombre de décimales).
+SELECT
+  ROUND(SUM(dist.salaire) / COUNT(dist.numfilm), 2) AS "Salaires moyens",
+  film.titre,
+  film.annee
+FROM
+  Film film
+  JOIN Distribution dist on film.numfilm = dist.numfilm
+GROUP BY
+  film.titre,
+  film.annee;
+-- 25. Trouver le genre des films des années 2010 à 2012 dont le budget moyen (du genre) dépasse 30.000.000 $.
+SELECT
+  gen.libellegenre,
+  ROUND(SUM(film.budget) / COUNT(gen.libellegenre), 2) AS "Budget moyen"
+FROM
+  Film film
+  JOIN Genre gen on film.genre = gen.numgenre
+WHERE
+  film.annee BETWEEN 2010
+  AND 2012
+  AND film.budget > 30000000
+GROUP BY
+  gen.libellegenre;
+-- 26. Trouver le titre et l’année du ou des films les plus longs.
+SELECT
+  film1.titre,
+  film1.annee,
+  film1.longueur
+FROM
+  Film film1
+WHERE
+  film1.longueur = (
+    SELECT
+      MAX(longueur)
+    FROM
+      Film
+  );
+--27.Afficher les acteurs qui ont gagné plus (en tout) que tous les réalisateurs (pour tous les films réalisés)
+SELECT
+  pers.nom,
+  pers.prenom,
+  SUM(dist.salaire) AS "Salaire total"
+FROM
+  Personne pers
+  JOIN Acteur act ON pers.numpersonne = act.numpersonne
+  JOIN Distribution dist ON act.numacteur = dist.numacteur
+WHERE
+  (
+    SELECT
+      SUM(dist2.salaire)
+    FROM
+      Acteur act2
+      JOIN Distribution dist2 on act2.numacteur = dist2.numacteur
+  ) > (
+    SELECT
+      SUM(film.salaire_real),
+      film.realisateur
+    FROM
+      Film film
+    GROUP BY
+      film.realisateur
+  )
+GROUP BY
+  pers.nom,
+  pers.prenom;
