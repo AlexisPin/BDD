@@ -287,22 +287,62 @@ FROM
   Personne pers
   JOIN Acteur act ON pers.numpersonne = act.numpersonne
   JOIN Distribution dist ON act.numacteur = dist.numacteur
-WHERE
-  (
+  JOIN Film film ON dist.numfilm = film.numfilm
+GROUP BY
+  pers.nom,
+  pers.prenom
+HAVING
+  SUM(dist.salaire) > (
     SELECT
-      SUM(dist2.salaire)
-    FROM
-      Acteur act2
-      JOIN Distribution dist2 on act2.numacteur = dist2.numacteur
-  ) > (
-    SELECT
-      SUM(film.salaire_real),
-      film.realisateur
+      MAX(SUM(film.salaire_real)) OVER()
     FROM
       Film film
     GROUP BY
       film.realisateur
-  )
+    LIMIT
+      1
+  );
+--28. Donner le titre du film qui passe dans le cinéma ayant la plus grande taille d’écran.
+SELECT
+  film.titre
+FROM
+  Film film
+  JOIN Programmation prog ON film.numfilm = prog.numfilm
+  JOIN Salle sall ON prog.numcinema = sall.numcinema
 GROUP BY
-  pers.nom,
-  pers.prenom;
+  film.titre,
+  sall.taille_ecran
+HAVING
+  sall.taille_ecran = (
+    SELECT
+      MAX(sall2.taille_ecran)
+    FROM
+      Salle sall2
+  );
+--29.Affichez le numéro du film, son titre et en fonction du budget pas chère si < 10 000 000, moyen si <50 000 000 et trop chère dans les autres cas (fonction CASE).
+SELECT
+  film.numfilm,
+  film.titre,
+  film.budget,
+  CASE
+    WHEN film.budget < 10000000 THEN 'pas chère'
+    WHEN film.budget < 50000000 THEN 'moyen'
+    ELSE 'trop chère'
+  END "Importance bubget"
+FROM
+  Film film
+ORDER BY
+  "Importance bubget";
+-- 30.Affichez pour chaque film la mention film visible si l’année est 2013, film récent si 2012 et film ancien si autre année (fonction CASE)
+SELECT
+  film.numfilm,
+  film.titre,
+  CASE
+    WHEN film.annee = 2012 THEN 'récent'
+    WHEN film.annee = 2013 THEN 'visible'
+    ELSE 'ancien'
+  END "mention"
+FROM
+  Film film
+ORDER BY
+  "mention" DESC;
