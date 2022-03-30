@@ -527,9 +527,93 @@ FROM
 GROUP BY
   film.titre
 HAVING
-  count (prog.numsalle) = (
+  count (prog.numfilm) = (
     SELECT
       count(*)
     FROM
       Salle
+  );
+SELECT
+  film.titre
+FROM
+  Film film
+WHERE
+  NOT EXISTS (
+    SELECT
+      'X'
+    FROM
+      Salle salle
+    WHERE
+      NOT EXISTS (
+        SELECT
+          'X'
+        FROM
+          Programmation prog
+        WHERE
+          prog.numcinema = salle.numcinema
+          AND prog.numsalle = salle.numsalle
+          AND prog.numfilm = film.numfilm
+      )
+  );
+--41. Afficher les titres de films qui ont été programmés dans tous les cinémas. Vous le ferez de 2 manières : avec COUNT puis avec NOT EXISTS
+SELECT
+  film.titre
+FROM
+  Film film
+WHERE
+  NOT EXISTS (
+    SELECT
+      'X'
+    FROM
+      Salle salle
+      JOIN Cinema cine ON salle.numcinema = cine.numcinema
+    WHERE
+      NOT EXISTS (
+        SELECT
+          'X'
+        FROM
+          Programmation prog
+        WHERE
+          prog.numcinema = cine.numcinema
+          AND prog.numfilm = film.numfilm
+      )
+  );
+SELECT
+  film.titre
+FROM
+  Film film
+  JOIN Programmation prog ON film.numfilm = prog.numfilm
+GROUP BY
+  film.titre
+HAVING
+  count (prog.numfilm) = (
+    SELECT
+      count(*)
+    FROM
+      Cinema
+  );
+--42. Afficher le nom et le prénom des acteurs qui ont joué dans tous les films de Michel Hazanavicius. Vous le ferez de 2 manières : avec COUNT puis avec NOT EXISTS
+SELECT
+  pers.nom,
+  pers.prenom
+FROM
+  Personne pers
+  JOIN Acteur act ON pers.numpersonne = act.numpersonne
+  JOIN Distribution dist ON act.numacteur = dist.numacteur
+  JOIN Film film ON dist.numfilm = film.numfilm
+  JOIN Personne pers2 ON film.realisateur = pers2.numpersonne
+WHERE
+  pers2.nom = 'Hazanavicius'
+GROUP BY
+  pers.nom,
+  pers.prenom
+HAVING
+  count(film.titre) = (
+    select
+      count(*)
+    From
+      Film film2
+      JOIN Personne pers3 on film2.realisateur = pers3.numpersonne
+    WHERE
+      pers3.nom = 'Hazanavicius'
   );
