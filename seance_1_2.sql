@@ -261,9 +261,10 @@ FROM
 WHERE
   film.annee BETWEEN 2010
   AND 2012
-  AND film.budget > 30000000
 GROUP BY
-  gen.libellegenre;
+  gen.libellegenre
+HAVING
+  ROUND(SUM(film.budget) / COUNT(gen.libellegenre), 2) > 30000000;
 -- 26. Trouver le titre et l’année du ou des films les plus longs.
 SELECT
   film1.titre,
@@ -309,6 +310,7 @@ FROM
   Film film
   JOIN Programmation prog ON film.numfilm = prog.numfilm
   JOIN Salle sall ON prog.numcinema = sall.numcinema
+  AND prog.numsalle = sall.numsalle
 GROUP BY
   film.titre,
   sall.taille_ecran
@@ -346,3 +348,188 @@ FROM
   Film film
 ORDER BY
   "mention" DESC;
+-- 31. Rechercher les personnes (numéro et nom) qui ne sont ni réalisateur ni acteur
+SELECT
+  pers.numpersonne,
+  pers.nom
+FROM
+  Personne pers
+WHERE
+  pers.numpersonne NOT IN (
+    SELECT
+      film.realisateur
+    FROM
+      Film film
+  )
+  AND pers.numpersonne NOT IN (
+    SELECT
+      act.numpersonne
+    FROM
+      Acteur act
+  );
+--32. Afficher les téléphones des personnes et des cinémas uniquement s’ils ont été renseignés
+SELECT
+  pers.telephone
+FROM
+  Personne pers
+WHERE
+  pers.telephone IS NOT NULL
+UNION
+SELECT
+  cine.telephone
+FROM
+  Cinema cine
+WHERE
+  cine.telephone IS NOT NULL;
+-- 33. Afficher tous les genres de film et les titres des films associés à chaque genre (jointure externe)
+SELECT
+  gen.libellegenre,
+  film.titre
+FROM
+  Film film FULL
+  OUTER JOIN Genre gen ON film.genre = gen.numgenre;
+--34. Afficher les cinémas dont les salles n’ont pas été saisies dans la base (jointure externe)
+SELECT
+  cine.nom
+FROM
+  Cinema cine FULL
+  OUTER JOIN Salle salle ON cine.numcinema = salle.numcinema
+WHERE
+  salle.numsalle IS NULL;
+--35. Afficher les programmations dans toutes les salles de tous les cinémas (même si la salle n’a pas de programmation) (jointure externe)
+SELECT
+  cine.nom,
+  salle.numsalle,
+  film.titre,
+  prog.date_deb,
+  prog.date_fin,
+  prog.horaire,
+  prog.prix
+FROM
+  Cinema cine
+  LEFT OUTER JOIN Salle salle ON cine.numcinema = salle.numcinema
+  LEFT OUTER JOIN Programmation prog ON salle.numcinema = prog.numcinema
+  AND salle.numsalle = prog.numsalle
+  LEFT OUTER JOIN Film film ON prog.numfilm = film.numfilm;
+--36. Afficher les personnes (nom, prénom) qui habitent à côté d’un cinéma (mêmes adresse et ville)
+SELECT
+  pers.nom,
+  pers.prenom
+FROM
+  Personne pers
+WHERE
+  pers.adresse IN (
+    SELECT
+      cine.adresse
+    FROM
+      Cinema cine
+  )
+  AND pers.ville IN (
+    SELECT
+      cine.ville
+    FROM
+      Cinema cine
+  );
+--37. Quels sont les acteurs de même âge (i.e. nés la même année) ayant joué ensemble ? Afficher le titre du film, les nom, prénom et année de naissance des acteurs. Remarque : datenais ne contient que l’année de naissance
+SELECT
+  film.titre,
+  pers.nom,
+  pers.prenom,
+  pers.datenais AS "ANNEE NAISSANCE",
+  dist.numfilm
+FROM
+  Personne pers
+  JOIN Acteur act ON pers.numpersonne = act.numpersonne
+  JOIN Distribution dist ON act.numacteur = dist.numacteur
+  JOIN Film film ON dist.numfilm = film.numfilm
+WHERE
+  EXISTS (
+    SELECT
+      'X'
+    FROM
+      Personne pers2
+      JOIN Acteur act2 ON pers2.numpersonne = act2.numpersonne
+      JOIN Distribution dist2 ON act2.numacteur = dist2.numacteur
+      JOIN Film film2 ON dist2.numfilm = film2.numfilm
+    WHERE
+      pers2.datenais = pers.datenais
+      AND film2.numfilm = film.numfilm
+      AND pers2.nom != pers.nom
+  );
+--38. Afficher les personnes (nom, prénom) qui ne sont pas acteurs. Avec IN (ou NOT IN) puis avec EXISTS (ou NOT EXISTS)
+SELECT
+  pers.nom,
+  pers.prenom
+FROM
+  Personne pers
+WHERE
+  NOT EXISTS (
+    SELECT
+      'X'
+    FROM
+      Acteur act
+    WHERE
+      act.numpersonne = pers.numpersonne
+  );
+SELECT
+  pers.nom,
+  pers.prenom
+FROM
+  Personne pers
+WHERE
+  pers.nom NOT IN (
+    SELECT
+      pers2.nom
+    FROM
+      Personne pers2
+      JOIN Acteur act ON pers2.numpersonne = act.numpersonne
+  );
+-- 39.Trouver le titre des films qui passent dans aucun cin é ma ind é pendant (compagnie = ’ indep ’).R é pondre à cette requ ê te de 2 fa ç ons: avec IN (ou NOT IN) et avec EXISTS (ou NOT EXISTS)
+SELECT
+  film.titre
+FROM
+  Film film
+WHERE
+  film.numfilm NOT IN (
+    SELECT
+      prog.numfilm
+    FROM
+      Programmation prog
+      JOIN Salle salle ON prog.numcinema = salle.numcinema
+      AND prog.numsalle = salle.numsalle
+      JOIN Cinema cine ON salle.numcinema = cine.numcinema
+    WHERE
+      cine.compagnie = 'indep'
+  );
+SELECT
+  film.titre
+FROM
+  Film film
+WHERE
+  NOT EXISTS (
+    SELECT
+      'X'
+    FROM
+      Programmation prog
+      JOIN Salle salle ON prog.numcinema = salle.numcinema
+      AND prog.numsalle = salle.numsalle
+      JOIN Cinema cine ON salle.numcinema = cine.numcinema
+    WHERE
+      cine.compagnie = 'indep'
+      AND film.numfilm = prog.numfilm
+  );
+--40. Afficher les titres de films qui ont été programmés dans toutes les salles. Vous le ferez de 2 manières : avec COUNT puis avec NOT EXISTS
+SELECT
+  film.titre
+FROM
+  Film film
+  JOIN Programmation prog ON film.numfilm = prog.numfilm
+GROUP BY
+  film.titre
+HAVING
+  count (prog.numsalle) = (
+    SELECT
+      count(*)
+    FROM
+      Salle
+  );
