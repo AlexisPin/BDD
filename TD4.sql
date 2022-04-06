@@ -58,7 +58,7 @@ create table ITINERAIRE (
   constraint CK_ORIENTATION_ITINERAIRE CHECK (
     ORIENTATION in ('N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO')
   )
-)
+);
 /*==============================================================*/
 /* Table : ITINERAIRE_SORTIE                                    */
 /*==============================================================*/
@@ -72,7 +72,7 @@ create table ITINERAIRE_SORTIE (
   constraint UQ_ID_SOMMET unique(ID_SOMMET),
   constraint UQ_ID_ITINERAIRE unique(ID_ITINERAIRE),
   constraint UQ_ID_SORTIE unique(ID_SORTIE)
-)
+);
 /*==============================================================*/
 /* Table : PARTICIPATION                                        */
 /*==============================================================*/
@@ -113,7 +113,7 @@ ADD
 ALTER Table
   ITINERAIRE
 ADD
-  CONSTRAINT FK_ITINEERAIRE_DIFFICULTE FOREIGN KEY (DIFFICULTE) REFERENCES DIFFIULTE (CODE_DIFFICULTE);
+  CONSTRAINT FK_ITINEERAIRE_DIFFICULTE FOREIGN KEY (DIFFICULTE) REFERENCES DIFFICULTE (CODE_DIFFICULTE);
 ALTER Table
   ITINERAIRE_SORTIE
 ADD
@@ -121,11 +121,7 @@ ADD
 ALTER Table
   ITINERAIRE_SORTIE
 ADD
-  CONSTRAINT FK_ITINERAIRE_SORTIE_ITINERAIRE FOREIGN KEY (ID_ITINERAIRE) REFERENCES ITINERAIRE (ID_ITINERAIRE);
-ALTER Table
-  ITINERAIRE_SORTIE
-ADD
-  CONSTRAINT FK_ITINERAIRE_SORTIE_ITINERAIRE FOREIGN KEY (ID_SOMMET) REFERENCES ITINERAIRE (ID_SOMMET);
+  CONSTRAINT FK_ITINERAIRE_SORTIE_ITINERAIRE FOREIGN KEY (ID_ITINERAIRE, ID_SOMMET) REFERENCES ITINERAIRE (ID_ITINERAIRE, ID_SOMMET);
 ALTER TABLE
   PARTICIPATION
 ADD
